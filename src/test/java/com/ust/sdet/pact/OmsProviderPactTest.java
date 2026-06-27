@@ -12,15 +12,16 @@ import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @Provider("oms-provider")
-@PactBroker(url = "http://localhost:9292",
+@PactBroker(url = "http://127.0.0.1:9292",
         enablePendingPacts = "true",
         providerTags = "main",
         includeWipPactsSince = "2026-06-26")
+
 public class OmsProviderPactTest {
 
     @BeforeEach
     void before(PactVerificationContext context) {
-        context.setTarget(new HttpTestTarget("localhost", 4010));
+        context.setTarget(new HttpTestTarget("127.0.0.1", 4010));
     }
 
     @TestTemplate
