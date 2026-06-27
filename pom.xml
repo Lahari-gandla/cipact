@@ -16,7 +16,7 @@
         <junit.version>5.12.2</junit.version>
         <wiremock.version>3.13.2</wiremock.version>
         <pact.version>4.6.20</pact.version>
-        <pact.broker.url>https://uhfa.pactflow.io</pact.broker.url>
+        <pact.broker.url>http://127.0.0.1:9292</pact.broker.url>
         <pact.publish.consumer.version>${project.version}</pact.publish.consumer.version>
         <pact.publish.consumer.branchName>local</pact.publish.consumer.branchName>
         <slf4j.version>2.0.17</slf4j.version>
