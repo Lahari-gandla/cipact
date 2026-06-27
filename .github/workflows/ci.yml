@@ -1,0 +1,66 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 00. Checkout Code
+        uses: actions/checkout@v5
+
+      - name: 0. Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '22'
+          cache: 'maven'
+
+      - name: 0. Install Pact CLI
+        run: |
+          curl -fsSL https://github.com/pact-foundation/pact-ruby-standalone/releases/download/v2.4.5/pact-2.4.5-linux-x86_64.tar.gz | tar xz -C $HOME
+          echo "$HOME/pact/bin" >> $GITHUB_PATH
+
+      - name: 1. Start Pact Broker
+        run: |
+          docker compose -f src/test/resources/docker-compose.pact-broker.yml down -v
+          docker compose -f src/test/resources/docker-compose.pact-broker.yml up -d --wait
+
+      - name: 2. Run Consumer Tests & Publish Contracts
+
+        run: |
+          mvn -Dtest=PosOmsConsumerPactTest test
+
+      - name: 3. Consumer Publish Contracts to the Borker
+        run: |
+          pact-broker publish target/pacts \
+            --consumer-app-version=${{ github.sha }} \
+            --branch=main \
+            --broker-base-url=http://127.0.0.1:9292
+
+      - name: 4. Run Provider Verification
+        run: |
+          mvn -Dtest=OmsProviderPactTest \
+              -Dgit.sha=${{ github.sha }} \
+              -Dpactbroker.host=127.0.0.1 \
+              -Dpactbroker.port=9292 \
+              test
+
+      - name: 5. Record provider deployment to production
+        run: |
+          pact-broker record-deployment \
+            --pacticipant oms-provider \
+            --version ${{ github.sha }} \
+            --environment production \
+            --broker-base-url http://127.0.0.1:9292
+
+      - name: 6. Can I deploy
+        env:
+          CONTRACT_VERSION: ${{ github.sha }}
+        run: |
+          pact-broker can-i-deploy \
+          --pacticipant pos-consumer \
+          --version $CONTRACT_VERSION \
+          --to-environment production \
+          --broker-base-url http://127.0.0.1:9292
